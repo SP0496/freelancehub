@@ -21,10 +21,12 @@ public class SecurityConfig {
                         NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(auth -> auth
                         .pathMatchers(
-                                HttpMethod.GET, "/api/v1/users/me")
+                                HttpMethod.POST, "/api/v1/projects")
                         .authenticated()
                         .pathMatchers(
-                                HttpMethod.PUT, "/api/v1/users/me")
+                                HttpMethod.GET,
+                                "/api/v1/projects",
+                                "/api/v1/projects/*")
                         .authenticated()
                         .anyExchange().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
