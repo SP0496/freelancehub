@@ -66,4 +66,17 @@ public class ProjectController {
                 request
         );
     }
+
+    @PostMapping("/{id}/cancel")
+    public ProjectResponse cancelProject(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CancelProjectRequest request) {
+
+        return projectService.cancelProject(
+                id,
+                jwt.getSubject(),
+                request
+        );
+    }
 }

@@ -124,6 +124,53 @@ public class ProjectService {
         }
     }
 
+    @Transactional
+    public ProjectResponse cancelProject(
+            String id,
+            String clientSubject,
+            CancelProjectRequest request) {
+
+        ProjectEntity project = projectRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Project not found"
+                ));
+
+        if (!project.getClientSubject().equals(clientSubject)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can cancel only your own projects"
+            );
+        }
+
+        if (!"OPEN".equals(project.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only OPEN projects can be cancelled"
+            );
+        }
+
+        if (!Objects.equals(project.getVersion(), request.version())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Project changed. Reload it before cancelling."
+            );
+        }
+
+        project.cancel();
+
+        try {
+            projectRepository.flush();
+            return ProjectResponse.from(project);
+        } catch (OptimisticLockingFailureException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Project changed. Reload it before cancelling.",
+                    exception
+            );
+        }
+    }
+
     private PageRequest createPageRequest(int page, int size) {
 
         if (page < 0 || size < 1 || size > 50) {

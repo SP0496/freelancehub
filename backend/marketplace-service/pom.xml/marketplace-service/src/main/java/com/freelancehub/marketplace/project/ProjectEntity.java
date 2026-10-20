@@ -70,6 +70,10 @@ public class ProjectEntity {
         this.budget = budget;
     }
 
+    public void cancel() {
+        this.status = "CANCELLED";
+    }
+
     @PrePersist
     void beforeInsert() {
         Instant now = Instant.now();

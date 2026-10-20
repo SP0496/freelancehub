@@ -28,6 +28,9 @@ public class SecurityConfig {
                                 "/api/v1/projects",
                                 "/api/v1/projects/*")
                         .authenticated()
+                        .pathMatchers(
+                                HttpMethod.POST, "/api/v1/projects/*/cancel")
+                        .authenticated()
                         .anyExchange().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()))
