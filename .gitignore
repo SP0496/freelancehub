@@ -1,0 +1,14 @@
+# Passwords
+.env
+.env.*
+!.env.example
+
+# IntelliJ
+.idea/
+*.iml
+
+# Build output
+**/target/
+
+# Logs
+*.log
