@@ -25,7 +25,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR)
                         .permitAll()
                         .requestMatchers(
-                                HttpMethod.POST, "/api/v1/projects")
+                                HttpMethod.PUT, "/api/v1/projects/*")
                         .authenticated()
                         .requestMatchers(
                                 HttpMethod.GET,

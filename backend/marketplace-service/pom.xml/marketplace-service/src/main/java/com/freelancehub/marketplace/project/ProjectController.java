@@ -40,4 +40,30 @@ public class ProjectController {
 
         return projectService.getOpenProjects(page, size);
     }
+
+    @GetMapping("/mine")
+    public ProjectPageResponse getMyProjects(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return projectService.getMyProjects(
+                jwt.getSubject(),
+                page,
+                size
+        );
+    }
+
+    @PutMapping("/{id}")
+    public ProjectResponse updateProject(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateProjectRequest request) {
+
+        return projectService.updateProject(
+                id,
+                jwt.getSubject(),
+                request
+        );
+    }
 }

@@ -45,8 +45,12 @@ public class ProjectEntity {
     protected ProjectEntity() {
     }
 
-    public ProjectEntity(String clientSubject, String title,
-                         String description, BigDecimal budget) {
+    public ProjectEntity(
+            String clientSubject,
+            String title,
+            String description,
+            BigDecimal budget) {
+
         this.id = UUID.randomUUID().toString();
         this.clientSubject = clientSubject;
         this.title = title;
@@ -54,6 +58,16 @@ public class ProjectEntity {
         this.budget = budget;
         this.currency = "INR";
         this.status = "OPEN";
+    }
+
+    public void updateDetails(
+            String title,
+            String description,
+            BigDecimal budget) {
+
+        this.title = title;
+        this.description = description;
+        this.budget = budget;
     }
 
     @PrePersist
