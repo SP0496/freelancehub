@@ -59,4 +59,19 @@ public class ProposalController {
                 request
         );
     }
+
+    @PostMapping("/{proposalId}/withdraw")
+    public ProposalResponse withdrawProposal(
+            @PathVariable("projectId") String projectId,
+            @PathVariable("proposalId") String proposalId,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody WithdrawProposalRequest request) {
+
+        return proposalService.withdrawProposal(
+                projectId,
+                proposalId,
+                jwt.getSubject(),
+                request
+        );
+    }
 }

@@ -245,6 +245,76 @@ public class ProposalService {
         }
     }
 
+    @Transactional
+    public ProposalResponse withdrawProposal(
+            String projectId,
+            String proposalId,
+            String freelancerSubject,
+            WithdrawProposalRequest request) {
+
+        ProjectEntity project = entityManager.find(
+                ProjectEntity.class,
+                projectId,
+                LockModeType.PESSIMISTIC_WRITE
+        );
+
+        if (project == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Project not found"
+            );
+        }
+
+        ProposalEntity proposal = entityManager.find(
+                ProposalEntity.class,
+                proposalId,
+                LockModeType.PESSIMISTIC_WRITE
+        );
+
+        if (proposal == null
+                || !projectId.equals(proposal.getProjectId())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Proposal not found for this project"
+            );
+        }
+
+        if (!proposal.getFreelancerSubject().equals(freelancerSubject)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can withdraw only your own proposals"
+            );
+        }
+
+        if (!"SUBMITTED".equals(proposal.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only SUBMITTED proposals can be withdrawn"
+            );
+        }
+
+        if (!Objects.equals(proposal.getVersion(), request.version())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Proposal changed. Reload before withdrawing."
+            );
+        }
+
+        proposal.withdraw();
+
+        try {
+            proposalRepository.flush();
+            return ProposalResponse.from(proposal);
+        } catch (OptimisticLockingFailureException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Proposal changed. Reload before withdrawing.",
+                    exception
+            );
+        }
+    }
+
     private PageRequest createPageRequest(int page, int size) {
 
         if (page < 0 || size < 1 || size > 50) {

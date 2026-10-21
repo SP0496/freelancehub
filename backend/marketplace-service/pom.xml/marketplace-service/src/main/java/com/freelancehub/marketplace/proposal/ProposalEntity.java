@@ -70,6 +70,10 @@ public class ProposalEntity {
         this.status = "REJECTED";
     }
 
+    public void withdraw() {
+        this.status = "WITHDRAWN";
+    }
+
     @PrePersist
     void beforeInsert() {
         Instant now = Instant.now();
