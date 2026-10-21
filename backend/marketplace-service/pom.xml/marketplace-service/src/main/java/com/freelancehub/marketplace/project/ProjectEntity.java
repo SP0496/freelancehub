@@ -78,6 +78,10 @@ public class ProjectEntity {
         this.status = "IN_PROGRESS";
     }
 
+    public void complete() {
+        this.status = "COMPLETED";
+    }
+
     @PrePersist
     void beforeInsert() {
         Instant now = Instant.now();

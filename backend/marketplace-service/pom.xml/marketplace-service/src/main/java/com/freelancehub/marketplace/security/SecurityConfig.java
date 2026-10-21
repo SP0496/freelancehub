@@ -57,6 +57,10 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/v1/projects/*/proposals/*/withdraw")
                         .authenticated()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/projects/*/complete")
+                        .authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()))

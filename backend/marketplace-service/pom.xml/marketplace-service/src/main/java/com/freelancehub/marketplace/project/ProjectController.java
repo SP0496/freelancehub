@@ -29,7 +29,9 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
-    public ProjectResponse getProject(@PathVariable String id) {
+    public ProjectResponse getProject(
+            @PathVariable("id") String id) {
+
         return projectService.getProject(id);
     }
 
@@ -56,7 +58,7 @@ public class ProjectController {
 
     @PutMapping("/{id}")
     public ProjectResponse updateProject(
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody UpdateProjectRequest request) {
 
@@ -69,11 +71,24 @@ public class ProjectController {
 
     @PostMapping("/{id}/cancel")
     public ProjectResponse cancelProject(
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CancelProjectRequest request) {
 
         return projectService.cancelProject(
+                id,
+                jwt.getSubject(),
+                request
+        );
+    }
+
+    @PostMapping("/{id}/complete")
+    public ProjectResponse completeProject(
+            @PathVariable("id") String id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CompleteProjectRequest request) {
+
+        return projectService.completeProject(
                 id,
                 jwt.getSubject(),
                 request
