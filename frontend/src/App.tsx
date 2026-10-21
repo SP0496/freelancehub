@@ -5,6 +5,7 @@ import CreateProject from './CreateProject'
 import OpenProjects from './OpenProjects'
 import MyProjects from './MyProjects'
 import MyProposals from './MyProposals'
+import MyProfile from './MyProfile'
 import { keycloak } from './auth'
 
 function App() {
@@ -104,6 +105,8 @@ function App() {
                 />
 
                 <MyProposals />
+
+                <MyProfile />
               </>
           )}
 
