@@ -1,120 +1,154 @@
-import { useRef, useState } from 'react'
-import { ApiError, postJson } from './api'
+// @vitest-environment jsdom
 
-type WithdrawProposalButtonProps = {
-    projectId: string
-    proposalId: string
-    proposalVersion: number
-    onWithdrawn: () => void
-}
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vitest'
+import {
+    cleanup,
+    render,
+    screen,
+    waitFor,
+} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { postJson } from './api'
+import WithdrawProposalButton from './WithdrawProposalButton'
 
-type WithdrawnProposal = {
-    id: string
-    status: string
-}
+vi.mock('./api', () => ({
+    postJson: vi.fn(),
+    ApiError: class extends Error {},
+}))
 
-export default function WithdrawProposalButtonTest({
-                                                   projectId,
-                                                   proposalId,
-                                                   proposalVersion,
-                                                   onWithdrawn,
-                                               }: WithdrawProposalButtonProps) {
-    const [confirming, setConfirming] = useState(false)
-    const [submitting, setSubmitting] = useState(false)
-    const [withdrawn, setWithdrawn] = useState(false)
-    const [error, setError] = useState('')
+const postJsonMock = vi.mocked(postJson)
 
-    const submissionInProgress = useRef(false)
+beforeEach(() => {
+    vi.resetAllMocks()
+})
 
-    async function withdrawProposal() {
-        if (submissionInProgress.current || withdrawn) {
-            return
-        }
+afterEach(() => {
+    cleanup()
+})
 
-        submissionInProgress.current = true
-        setSubmitting(true)
-        setError('')
+describe('WithdrawProposalButton', () => {
+    it('asks for confirmation before sending a request', async () => {
+        const user = userEvent.setup()
+        const onWithdrawn = vi.fn()
 
-        try {
-            await postJson<WithdrawnProposal>(
-                `/api/v1/projects/${encodeURIComponent(projectId)}/proposals/${encodeURIComponent(proposalId)}/withdraw`,
-                {
-                    version: proposalVersion,
-                },
-            )
-        } catch (failure) {
-            setError(
-                failure instanceof ApiError
-                    ? failure.message
-                    : 'Could not confirm withdrawal. Refresh your proposals before trying again.',
-            )
-
-            return
-        } finally {
-            submissionInProgress.current = false
-            setSubmitting(false)
-        }
-
-        setWithdrawn(true)
-        setConfirming(false)
-        onWithdrawn()
-    }
-
-    if (withdrawn) {
-        return (
-            <p className="project-status" role="status">
-                Proposal withdrawn.
-            </p>
+        render(
+            <WithdrawProposalButton
+                projectId="project-123"
+                proposalId="proposal-456"
+                proposalVersion={2}
+                onWithdrawn={onWithdrawn}
+            />,
         )
-    }
 
-    return (
-        <div className="proposal-acceptance">
-            {confirming ? (
-                <>
-                    <p className="hero-note">
-                        Withdraw this proposal? You will not be able to submit
-                        another proposal for the same project.
-                    </p>
+        await user.click(
+            screen.getByRole('button', {
+                name: 'Withdraw proposal',
+            }),
+        )
 
-                    <div className="proposal-action-buttons">
-                        <button
-                            className="secondary-button"
-                            type="button"
-                            disabled={submitting}
-                            onClick={() => void withdrawProposal()}
-                        >
-                            {submitting ? 'Withdrawing…' : 'Confirm withdrawal'}
-                        </button>
+        expect(
+            screen.getByRole('button', {
+                name: 'Confirm withdrawal',
+            }),
+        ).toBeTruthy()
 
-                        <button
-                            className="secondary-button"
-                            type="button"
-                            disabled={submitting}
-                            onClick={() => {
-                                setConfirming(false)
-                                setError('')
-                            }}
-                        >
-                            Keep proposal
-                        </button>
-                    </div>
-                </>
-            ) : (
-                <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => setConfirming(true)}
-                >
-                    Withdraw proposal
-                </button>
-            )}
+        expect(postJsonMock).not.toHaveBeenCalled()
+        expect(onWithdrawn).not.toHaveBeenCalled()
+    })
 
-            {error && (
-                <p className="projects-error" role="alert">
-                    {error}
-                </p>
-            )}
-        </div>
-    )
-}
+    it('sends no request when withdrawal is cancelled', async () => {
+        const user = userEvent.setup()
+        const onWithdrawn = vi.fn()
+
+        render(
+            <WithdrawProposalButton
+                projectId="project-123"
+                proposalId="proposal-456"
+                proposalVersion={2}
+                onWithdrawn={onWithdrawn}
+            />,
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: 'Withdraw proposal',
+            }),
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: 'Keep proposal',
+            }),
+        )
+
+        expect(
+            screen.getByRole('button', {
+                name: 'Withdraw proposal',
+            }),
+        ).toBeTruthy()
+
+        expect(
+            screen.queryByRole('button', {
+                name: 'Confirm withdrawal',
+            }),
+        ).toBeNull()
+
+        expect(postJsonMock).not.toHaveBeenCalled()
+        expect(onWithdrawn).not.toHaveBeenCalled()
+    })
+
+    it('withdraws the correct proposal with its version', async () => {
+        const user = userEvent.setup()
+        const onWithdrawn = vi.fn()
+
+        postJsonMock.mockResolvedValue({
+            id: 'proposal-456',
+            status: 'WITHDRAWN',
+        })
+
+        render(
+            <WithdrawProposalButton
+                projectId="project-123"
+                proposalId="proposal-456"
+                proposalVersion={2}
+                onWithdrawn={onWithdrawn}
+            />,
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: 'Withdraw proposal',
+            }),
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: 'Confirm withdrawal',
+            }),
+        )
+
+        await waitFor(() => {
+            expect(onWithdrawn).toHaveBeenCalledTimes(1)
+        })
+
+        expect(postJsonMock).toHaveBeenCalledTimes(1)
+
+        expect(postJsonMock).toHaveBeenCalledWith(
+            '/api/v1/projects/project-123/proposals/proposal-456/withdraw',
+            {
+                version: 2,
+            },
+        )
+
+        expect(screen.getByRole('status').textContent).toContain(
+            'Proposal withdrawn.',
+        )
+    })
+})
