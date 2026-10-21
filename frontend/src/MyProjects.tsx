@@ -3,6 +3,7 @@ import { getJson } from './api'
 import ProjectProposals from './ProjectProposals'
 import CompleteProjectButton from './CompleteProjectButton'
 import CancelProjectButton from './CancelProjectButton'
+import EditProject from './EditProject'
 
 type Project = {
     id: string
@@ -34,6 +35,8 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [selectedProject, setSelectedProject] =
+        useState<Project | null>(null)
+    const [editingProject, setEditingProject] =
         useState<Project | null>(null)
 
     useEffect(() => {
@@ -78,9 +81,32 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
         onChanged?.()
     }
 
-    function returnToProjects() {
+    function returnFromProposals() {
         setSelectedProject(null)
         handleProjectChanged()
+    }
+
+    function finishEditing() {
+        setEditingProject(null)
+        handleProjectChanged()
+    }
+
+    function cancelEditing() {
+        setEditingProject(null)
+        setAttempt((value) => value + 1)
+    }
+
+    if (editingProject) {
+        return (
+            <div id="my-projects" className="projects-section">
+                <EditProject
+                    key={editingProject.id}
+                    project={editingProject}
+                    onSaved={finishEditing}
+                    onCancel={cancelEditing}
+                />
+            </div>
+        )
     }
 
     if (selectedProject) {
@@ -91,7 +117,7 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
                     projectId={selectedProject.id}
                     projectTitle={selectedProject.title}
                     currency={selectedProject.currency}
-                    onBack={returnToProjects}
+                    onBack={returnFromProposals}
                 />
             </div>
         )
@@ -171,13 +197,25 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
                                 <h3>{project.title}</h3>
                                 <p>{project.description}</p>
 
-                                <button
-                                    className="secondary-button project-proposals-button"
-                                    type="button"
-                                    onClick={() => setSelectedProject(project)}
-                                >
-                                    View proposals
-                                </button>
+                                <div className="proposal-action-buttons">
+                                    <button
+                                        className="secondary-button"
+                                        type="button"
+                                        onClick={() => setSelectedProject(project)}
+                                    >
+                                        View proposals
+                                    </button>
+
+                                    {project.status === 'OPEN' && (
+                                        <button
+                                            className="secondary-button"
+                                            type="button"
+                                            onClick={() => setEditingProject(project)}
+                                        >
+                                            Edit project
+                                        </button>
+                                    )}
+                                </div>
 
                                 {project.status === 'OPEN' && (
                                     <CancelProjectButton

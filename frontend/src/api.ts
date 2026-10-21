@@ -50,7 +50,7 @@ function readFieldErrors(value: unknown): FieldError[] {
 
 async function requestJson<T>(
     path: string,
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'PUT',
     body: unknown,
     signal?: AbortSignal,
 ): Promise<T> {
@@ -139,4 +139,12 @@ export function postJson<T>(
     signal?: AbortSignal,
 ): Promise<T> {
     return requestJson<T>(path, 'POST', body, signal)
+}
+
+export function putJson<T>(
+    path: string,
+    body: unknown,
+    signal?: AbortSignal,
+): Promise<T> {
+    return requestJson<T>(path, 'PUT', body, signal)
 }
