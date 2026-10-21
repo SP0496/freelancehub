@@ -24,16 +24,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR)
                         .permitAll()
-                        .requestMatchers(
-                                HttpMethod.PUT, "/api/v1/projects/*")
-                        .authenticated()
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/projects",
                                 "/api/v1/projects/*")
                         .authenticated()
+
                         .requestMatchers(
-                                HttpMethod.POST, "/api/v1/projects/*/cancel")
+                                HttpMethod.POST,
+                                "/api/v1/projects",
+                                "/api/v1/projects/*/cancel",
+                                "/api/v1/projects/*/proposals")
+                        .authenticated()
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/projects/*")
+                        .authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/projects/*/proposals")
+                        .authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET, "/api/v1/proposals/mine")
                         .authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth

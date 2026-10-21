@@ -1,0 +1,185 @@
+package com.freelancehub.marketplace.proposal;
+
+import com.freelancehub.marketplace.project.ProjectEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class ProposalService {
+
+    private final ProposalRepository proposalRepository;
+    private final EntityManager entityManager;
+
+    public ProposalService(
+            ProposalRepository proposalRepository,
+            EntityManager entityManager) {
+
+        this.proposalRepository = proposalRepository;
+        this.entityManager = entityManager;
+    }
+
+    @Transactional
+    public ProposalResponse createProposal(
+            String projectId,
+            String freelancerSubject,
+            CreateProposalRequest request) {
+
+        ProjectEntity project = entityManager.find(
+                ProjectEntity.class,
+                projectId,
+                LockModeType.PESSIMISTIC_WRITE
+        );
+
+        if (project == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Project not found"
+            );
+        }
+
+        if (project.getClientSubject().equals(freelancerSubject)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You cannot apply to your own project"
+            );
+        }
+
+        if (!"OPEN".equals(project.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Proposals are allowed only for OPEN projects"
+            );
+        }
+
+        boolean alreadySubmitted =
+                proposalRepository.existsByProjectIdAndFreelancerSubject(
+                        projectId,
+                        freelancerSubject
+                );
+
+        if (alreadySubmitted) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "You already submitted a proposal for this project"
+            );
+        }
+
+        ProposalEntity proposal = new ProposalEntity(
+                projectId,
+                freelancerSubject,
+                request.coverLetter().strip(),
+                request.proposedAmount(),
+                request.deliveryDays()
+        );
+
+        try {
+            ProposalEntity saved =
+                    proposalRepository.saveAndFlush(proposal);
+
+            return ProposalResponse.from(saved);
+        } catch (DataIntegrityViolationException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Proposal could not be saved. Reload and try again.",
+                    exception
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ProposalPageResponse getProjectProposals(
+            String projectId,
+            String clientSubject,
+            int page,
+            int size) {
+
+        PageRequest pageRequest = createPageRequest(page, size);
+
+        ProjectEntity project = entityManager.find(
+                ProjectEntity.class,
+                projectId
+        );
+
+        if (project == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Project not found"
+            );
+        }
+
+        if (!project.getClientSubject().equals(clientSubject)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can view proposals only for your own projects"
+            );
+        }
+
+        Page<ProposalEntity> result =
+                proposalRepository.findByProjectId(
+                        projectId,
+                        pageRequest
+                );
+
+        return toPageResponse(result);
+    }
+
+    @Transactional(readOnly = true)
+    public ProposalPageResponse getMyProposals(
+            String freelancerSubject,
+            int page,
+            int size) {
+
+        PageRequest pageRequest = createPageRequest(page, size);
+
+        Page<ProposalEntity> result =
+                proposalRepository.findByFreelancerSubject(
+                        freelancerSubject,
+                        pageRequest
+                );
+
+        return toPageResponse(result);
+    }
+
+    private PageRequest createPageRequest(int page, int size) {
+
+        if (page < 0 || size < 1 || size > 50) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page must be 0 or greater. Size must be between 1 and 50."
+            );
+        }
+
+        return PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")
+                )
+        );
+    }
+
+    private ProposalPageResponse toPageResponse(
+            Page<ProposalEntity> result) {
+
+        return new ProposalPageResponse(
+                result.getContent()
+                        .stream()
+                        .map(ProposalResponse::from)
+                        .toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+    }
+}
