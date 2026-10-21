@@ -11,6 +11,10 @@ function App() {
   const signedIn = Boolean(keycloak.authenticated)
   const [projectsRefresh, setProjectsRefresh] = useState(0)
 
+  function refreshProjects() {
+    setProjectsRefresh((value) => value + 1)
+  }
+
   return (
       <div className="site">
         <header className="site-header">
@@ -90,15 +94,14 @@ function App() {
 
           {signedIn && (
               <>
-                <CreateProject
-                    onCreated={() =>
-                        setProjectsRefresh((value) => value + 1)
-                    }
-                />
+                <CreateProject onCreated={refreshProjects} />
 
                 <OpenProjects key={`open-${projectsRefresh}`} />
 
-                <MyProjects key={`mine-${projectsRefresh}`} />
+                <MyProjects
+                    key={`mine-${projectsRefresh}`}
+                    onChanged={refreshProjects}
+                />
 
                 <MyProposals />
               </>

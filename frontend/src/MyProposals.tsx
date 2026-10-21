@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getJson } from './api'
+import WithdrawProposalButton from './WithdrawProposalButton'
 
 type Proposal = {
     id: string
@@ -8,6 +9,7 @@ type Proposal = {
     proposedAmount: number
     deliveryDays: number
     status: string
+    version: number
 }
 
 type ProposalPage = {
@@ -111,9 +113,7 @@ export default function MyProposals() {
             {data && data.proposals.length === 0 && (
                 <div className="projects-message">
                     <h3>No proposals on this page</h3>
-                    <p>
-                        Your submitted proposals will appear here.
-                    </p>
+                    <p>Your submitted proposals will appear here.</p>
 
                     {page > 0 && (
                         <button
@@ -142,6 +142,17 @@ export default function MyProposals() {
                                 </h3>
 
                                 <p>{proposal.coverLetter}</p>
+
+                                {proposal.status === 'SUBMITTED' && (
+                                    <WithdrawProposalButton
+                                        projectId={proposal.projectId}
+                                        proposalId={proposal.id}
+                                        proposalVersion={proposal.version}
+                                        onWithdrawn={() =>
+                                            setAttempt((value) => value + 1)
+                                        }
+                                    />
+                                )}
                             </div>
 
                             <div className="project-budget">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getJson } from './api'
 import ProjectProposals from './ProjectProposals'
 import CompleteProjectButton from './CompleteProjectButton'
+import CancelProjectButton from './CancelProjectButton'
 
 type Project = {
     id: string
@@ -22,7 +23,11 @@ type ProjectPage = {
     last: boolean
 }
 
-export default function MyProjects() {
+type MyProjectsProps = {
+    onChanged?: () => void
+}
+
+export default function MyProjects({ onChanged }: MyProjectsProps) {
     const [page, setPage] = useState(0)
     const [attempt, setAttempt] = useState(0)
     const [data, setData] = useState<ProjectPage | null>(null)
@@ -68,9 +73,14 @@ export default function MyProjects() {
         return () => controller.abort()
     }, [page, attempt])
 
+    function handleProjectChanged() {
+        setAttempt((value) => value + 1)
+        onChanged?.()
+    }
+
     function returnToProjects() {
         setSelectedProject(null)
-        setAttempt((value) => value + 1)
+        handleProjectChanged()
     }
 
     if (selectedProject) {
@@ -169,13 +179,19 @@ export default function MyProjects() {
                                     View proposals
                                 </button>
 
+                                {project.status === 'OPEN' && (
+                                    <CancelProjectButton
+                                        projectId={project.id}
+                                        projectVersion={project.version}
+                                        onCancelled={handleProjectChanged}
+                                    />
+                                )}
+
                                 {project.status === 'IN_PROGRESS' && (
                                     <CompleteProjectButton
                                         projectId={project.id}
                                         projectVersion={project.version}
-                                        onCompleted={() =>
-                                            setAttempt((value) => value + 1)
-                                        }
+                                        onCompleted={handleProjectChanged}
                                     />
                                 )}
                             </div>
