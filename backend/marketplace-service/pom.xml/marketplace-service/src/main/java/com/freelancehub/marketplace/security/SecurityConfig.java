@@ -49,6 +49,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET, "/api/v1/proposals/mine")
                         .authenticated()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/projects/*/proposals/*/accept")
+                        .authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()))

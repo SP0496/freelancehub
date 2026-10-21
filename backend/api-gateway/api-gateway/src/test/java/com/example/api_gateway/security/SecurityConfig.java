@@ -46,6 +46,10 @@ public class SecurityConfig {
                         .pathMatchers(
                                 HttpMethod.GET, "/api/v1/proposals/mine")
                         .authenticated()
+                        .pathMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/projects/*/proposals/*/accept")
+                        .authenticated()
                         .anyExchange().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()))

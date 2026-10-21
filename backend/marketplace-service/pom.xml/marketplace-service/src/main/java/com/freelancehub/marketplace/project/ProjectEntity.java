@@ -74,6 +74,10 @@ public class ProjectEntity {
         this.status = "CANCELLED";
     }
 
+    public void startWork() {
+        this.status = "IN_PROGRESS";
+    }
+
     @PrePersist
     void beforeInsert() {
         Instant now = Instant.now();

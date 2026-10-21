@@ -62,6 +62,14 @@ public class ProposalEntity {
         this.status = "SUBMITTED";
     }
 
+    public void accept() {
+        this.status = "ACCEPTED";
+    }
+
+    public void reject() {
+        this.status = "REJECTED";
+    }
+
     @PrePersist
     void beforeInsert() {
         Instant now = Instant.now();

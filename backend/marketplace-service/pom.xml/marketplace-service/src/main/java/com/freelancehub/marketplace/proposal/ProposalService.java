@@ -4,6 +4,7 @@ import com.freelancehub.marketplace.project.ProjectEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -11,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Objects;
 
 @Service
 public class ProposalService {
@@ -146,6 +149,100 @@ public class ProposalService {
                 );
 
         return toPageResponse(result);
+    }
+
+    @Transactional
+    public ProposalResponse acceptProposal(
+            String projectId,
+            String proposalId,
+            String clientSubject,
+            AcceptProposalRequest request) {
+
+        ProjectEntity project = entityManager.find(
+                ProjectEntity.class,
+                projectId,
+                LockModeType.PESSIMISTIC_WRITE
+        );
+
+        if (project == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Project not found"
+            );
+        }
+
+        if (!project.getClientSubject().equals(clientSubject)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can accept proposals only for your own projects"
+            );
+        }
+
+        if (!"OPEN".equals(project.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only OPEN projects can accept a proposal"
+            );
+        }
+
+        ProposalEntity proposal = entityManager.find(
+                ProposalEntity.class,
+                proposalId,
+                LockModeType.PESSIMISTIC_WRITE
+        );
+
+        if (proposal == null
+                || !projectId.equals(proposal.getProjectId())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Proposal not found for this project"
+            );
+        }
+
+        if (!"SUBMITTED".equals(proposal.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only SUBMITTED proposals can be accepted"
+            );
+        }
+
+        if (!Objects.equals(
+                project.getVersion(), request.projectVersion())
+                || !Objects.equals(
+                proposal.getVersion(), request.proposalVersion())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Project or proposal changed. Reload before accepting."
+            );
+        }
+
+        var submittedProposals =
+                proposalRepository.findByProjectIdAndStatus(
+                        projectId,
+                        "SUBMITTED"
+                );
+
+        for (ProposalEntity other : submittedProposals) {
+            if (!other.getId().equals(proposalId)) {
+                other.reject();
+            }
+        }
+
+        proposal.accept();
+        project.startWork();
+
+        try {
+            proposalRepository.flush();
+            return ProposalResponse.from(proposal);
+        } catch (OptimisticLockingFailureException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Project or proposal changed. Reload before accepting.",
+                    exception
+            );
+        }
     }
 
     private PageRequest createPageRequest(int page, int size) {

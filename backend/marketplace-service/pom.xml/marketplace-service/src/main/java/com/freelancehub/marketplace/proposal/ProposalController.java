@@ -44,4 +44,19 @@ public class ProposalController {
                 size
         );
     }
+
+    @PostMapping("/{proposalId}/accept")
+    public ProposalResponse acceptProposal(
+            @PathVariable("projectId") String projectId,
+            @PathVariable("proposalId") String proposalId,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody AcceptProposalRequest request) {
+
+        return proposalService.acceptProposal(
+                projectId,
+                proposalId,
+                jwt.getSubject(),
+                request
+        );
+    }
 }
