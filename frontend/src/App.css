@@ -965,4 +965,25 @@ h1 {
   .primary-link:hover {
     transform: none;
   }
+
+  .project-proposals-button {
+    margin-top: 18px;
+  }
+
+  .proposal-acceptance {
+    margin-top: 20px;
+  }
+
+  .proposal-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .proposal-acceptance > .projects-error {
+    margin: 16px 0 0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
 }

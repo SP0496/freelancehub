@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import './App.css'
 import AuthButtons from './AuthButtons'
+import CreateProject from './CreateProject'
 import OpenProjects from './OpenProjects'
+import MyProjects from './MyProjects'
 import MyProposals from './MyProposals'
 import { keycloak } from './auth'
 
 function App() {
   const signedIn = Boolean(keycloak.authenticated)
+  const [projectsRefresh, setProjectsRefresh] = useState(0)
 
   return (
       <div className="site">
@@ -86,7 +90,16 @@ function App() {
 
           {signedIn && (
               <>
-                <OpenProjects />
+                <CreateProject
+                    onCreated={() =>
+                        setProjectsRefresh((value) => value + 1)
+                    }
+                />
+
+                <OpenProjects key={`open-${projectsRefresh}`} />
+
+                <MyProjects key={`mine-${projectsRefresh}`} />
+
                 <MyProposals />
               </>
           )}
@@ -98,6 +111,7 @@ function App() {
           >
             <div className="section-heading">
               <p className="eyebrow">A SIMPLER WAY TO WORK</p>
+
               <h2 id="process-title">
                 From an idea to a job well done.
               </h2>
@@ -106,6 +120,7 @@ function App() {
             <ol className="process-list">
               <li>
                 <span className="step-number">01</span>
+
                 <div>
                   <h3>Make the brief clear</h3>
                   <p>
@@ -117,6 +132,7 @@ function App() {
 
               <li>
                 <span className="step-number">02</span>
+
                 <div>
                   <h3>Find the right fit</h3>
                   <p>
@@ -128,6 +144,7 @@ function App() {
 
               <li>
                 <span className="step-number">03</span>
+
                 <div>
                   <h3>Move the work forward</h3>
                   <p>
@@ -142,10 +159,12 @@ function App() {
           <section className="start-section" id="getting-started">
             <div>
               <p className="eyebrow">YOUR NEXT CHAPTER</p>
+
               <h2>A place for your best work.</h2>
+
               <p>
                 {signedIn
-                    ? 'Explore open projects and keep track of your proposals.'
+                    ? 'Post a project, explore opportunities, and keep track of your proposals.'
                     : 'Sign in to explore projects and manage your work.'}
               </p>
             </div>
