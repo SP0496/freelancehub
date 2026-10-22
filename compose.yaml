@@ -7,10 +7,12 @@ services:
       MYSQL_DATABASE: fh_user
       MYSQL_USER: fh_user_app
       MYSQL_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
+      MARKETPLACE_DB_PASSWORD: ${MARKETPLACE_DB_PASSWORD:?Set MARKETPLACE_DB_PASSWORD}
     ports:
       - "127.0.0.1:3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./infra/mysql:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
@@ -20,7 +22,7 @@ services:
 
   identity:
     image: quay.io/keycloak/keycloak:26.8.1
-    command: ["start-dev"]
+    command: ["start-dev", "--import-realm"]
     restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -30,6 +32,7 @@ services:
       - "127.0.0.1:8180:8080"
     volumes:
       - identity-data:/opt/keycloak/data
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
 
   user-service:
     image: freelancehub-user-service:local
