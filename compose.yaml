@@ -1,26 +1,131 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: fh_user
       MYSQL_USER: fh_user_app
-      MYSQL_PASSWORD: ${USER_DB_PASSWORD}
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
     ports:
       - "127.0.0.1:3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   identity:
     image: quay.io/keycloak/keycloak:26.8.1
     command: ["start-dev"]
+    restart: unless-stopped
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: http://localhost:8180
     ports:
       - "127.0.0.1:8180:8080"
     volumes:
       - identity-data:/opt/keycloak/data
+
+  user-service:
+    image: freelancehub-user-service:local
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        SERVICE_DIR: backend/user-service
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_user
+      SPRING_DATASOURCE_USERNAME: fh_user_app
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
+      DB_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/freelancehub
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  marketplace-service:
+    image: freelancehub-marketplace-service:local
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        SERVICE_DIR: backend/marketplace-service/pom.xml/marketplace-service
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_marketplace
+      SPRING_DATASOURCE_USERNAME: fh_marketplace_app
+      SPRING_DATASOURCE_PASSWORD: ${MARKETPLACE_DB_PASSWORD:?Set MARKETPLACE_DB_PASSWORD}
+      MARKETPLACE_DB_PASSWORD: ${MARKETPLACE_DB_PASSWORD:?Set MARKETPLACE_DB_PASSWORD}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/freelancehub
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  api-gateway:
+    image: freelancehub-api-gateway:local
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        SERVICE_DIR: backend/api-gateway/api-gateway
+    restart: unless-stopped
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/freelancehub
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
+      SPRING_APPLICATION_JSON: >-
+        {
+          "spring.cloud.gateway.server.webflux.routes": [
+            {
+              "id": "user-service",
+              "uri": "http://user-service:8081",
+              "predicates": ["Path=/api/v1/users/me"]
+            },
+            {
+              "id": "marketplace-service",
+              "uri": "http://marketplace-service:8082",
+              "predicates": [
+                "Path=/api/v1/projects,/api/v1/projects/**,/api/v1/proposals/mine"
+              ]
+            }
+          ]
+        }
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      user-service:
+        condition: service_started
+      marketplace-service:
+        condition: service_started
+      identity:
+        condition: service_started
+
+  frontend:
+    image: freelancehub-frontend:local
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
 
 volumes:
   mysql-data:
