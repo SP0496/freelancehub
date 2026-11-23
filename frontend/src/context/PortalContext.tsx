@@ -1,5 +1,6 @@
 /* oxlint-disable react/only-export-components */
 import React, { useState, useEffect } from 'react'
+import { authService } from '../services/authService'
 import { keycloak } from '../auth'
 import { PortalContext, type PortalType } from './portalTypes'
 
@@ -12,10 +13,17 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return (saved === 'client' || saved === 'freelancer') ? saved : 'freelancer'
   })
 
-  const isAuthenticated = Boolean(keycloak.authenticated)
-  const username = String(keycloak.tokenParsed?.preferred_username ?? 'User')
-  const email = String(keycloak.tokenParsed?.email ?? '')
-  const sub = String(keycloak.tokenParsed?.sub ?? '')
+  const stored = authService.getStoredSession()
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(stored || keycloak.authenticated))
+  const [username, setUsername] = useState<string>(
+    stored?.claims.preferred_username || String(keycloak.tokenParsed?.preferred_username ?? 'User')
+  )
+  const [email, setEmail] = useState<string>(
+    stored?.claims.email || String(keycloak.tokenParsed?.email ?? '')
+  )
+  const [sub, setSub] = useState<string>(
+    stored?.claims.sub || String(keycloak.tokenParsed?.sub ?? '')
+  )
 
   function setPortal(newPortal: PortalType) {
     setPortalState(newPortal)
@@ -33,19 +41,43 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  async function login(redirectUri?: string) {
-    const target = redirectUri || window.location.origin + '/'
-    await keycloak.login({ redirectUri: target })
+  async function loginWithCredentials(user: string, pass: string) {
+    const session = await authService.login(user, pass)
+    setIsAuthenticated(true)
+    setUsername(session.claims.preferred_username || user)
+    setEmail(session.claims.email || '')
+    setSub(session.claims.sub || '')
   }
 
-  async function register(redirectUri?: string) {
-    const target = redirectUri || window.location.origin + '/'
-    await keycloak.register({ redirectUri: target })
+  async function registerWithCredentials(input: {
+    username: string
+    email: string
+    firstName: string
+    lastName: string
+    password: string
+  }) {
+    const session = await authService.register(input)
+    setIsAuthenticated(true)
+    setUsername(session.claims.preferred_username || input.username)
+    setEmail(session.claims.email || input.email)
+    setSub(session.claims.sub || '')
   }
 
-  async function logout(redirectUri?: string) {
-    const target = redirectUri || window.location.origin + '/'
-    await keycloak.logout({ redirectUri: target })
+  async function logout() {
+    await authService.logout()
+    setIsAuthenticated(false)
+    setUsername('User')
+    setEmail('')
+    setSub('')
+    window.location.href = '/'
+  }
+
+  async function login() {
+    window.location.href = '/login'
+  }
+
+  async function register() {
+    window.location.href = '/register'
   }
 
   return (
@@ -58,6 +90,8 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         username,
         email,
         sub,
+        loginWithCredentials,
+        registerWithCredentials,
         login,
         register,
         logout,

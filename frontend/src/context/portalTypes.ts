@@ -10,9 +10,17 @@ export interface PortalContextValue {
   username: string
   email: string
   sub: string
-  login: (redirectUri?: string) => Promise<void>
-  register: (redirectUri?: string) => Promise<void>
-  logout: (redirectUri?: string) => Promise<void>
+  loginWithCredentials: (username: string, password: string) => Promise<void>
+  registerWithCredentials: (input: {
+    username: string
+    email: string
+    firstName: string
+    lastName: string
+    password: string
+  }) => Promise<void>
+  login: () => Promise<void>
+  register: () => Promise<void>
+  logout: () => Promise<void>
 }
 
 export const PortalContext = createContext<PortalContextValue | undefined>(undefined)

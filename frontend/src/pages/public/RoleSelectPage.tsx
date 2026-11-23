@@ -4,7 +4,7 @@ import { usePortal } from '../../context/PortalContext'
 import { Briefcase, UserCheck, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react'
 
 export const RoleSelectPage: React.FC = () => {
-  const { setPortal, isAuthenticated, login } = usePortal()
+  const { setPortal, isAuthenticated } = usePortal()
   const navigate = useNavigate()
 
   const handleSelect = (role: 'freelancer' | 'client') => {
@@ -12,8 +12,7 @@ export const RoleSelectPage: React.FC = () => {
     if (isAuthenticated) {
       navigate(role === 'freelancer' ? '/freelancer/dashboard' : '/client/dashboard')
     } else {
-      // If not authenticated, proceed to login with portal set
-      void login()
+      navigate('/login')
     }
   }
 
