@@ -25,7 +25,8 @@
       ],
       "webOrigins": [
         "http://localhost:5173",
-        "+"
+        "+",
+        "*"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
@@ -103,7 +104,8 @@
       "webOrigins": [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "+"
+        "+",
+        "*"
       ]
     }
   ]
