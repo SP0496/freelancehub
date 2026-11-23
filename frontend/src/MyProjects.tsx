@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Briefcase, ArrowUpRight, Edit3, RefreshCw, Loader2, AlertCircle } from 'lucide-react'
 import { getJson } from './api'
 import ProjectProposals from './ProjectProposals'
 import CompleteProjectButton from './CompleteProjectButton'
@@ -34,10 +35,8 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
     const [data, setData] = useState<ProjectPage | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
-    const [selectedProject, setSelectedProject] =
-        useState<Project | null>(null)
-    const [editingProject, setEditingProject] =
-        useState<Project | null>(null)
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+    const [editingProject, setEditingProject] = useState<Project | null>(null)
 
     useEffect(() => {
         const controller = new AbortController()
@@ -98,7 +97,7 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
 
     if (editingProject) {
         return (
-            <div id="my-projects" className="projects-section">
+            <div id="my-projects" className="py-4">
                 <EditProject
                     key={editingProject.id}
                     project={editingProject}
@@ -111,7 +110,7 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
 
     if (selectedProject) {
         return (
-            <div id="my-projects" className="projects-section">
+            <div id="my-projects" className="py-4">
                 <ProjectProposals
                     key={selectedProject.id}
                     projectId={selectedProject.id}
@@ -126,93 +125,118 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
     return (
         <section
             id="my-projects"
-            className="projects-section"
+            className="py-4"
             aria-labelledby="my-projects-title"
             aria-busy={loading}
         >
-            <div className="projects-heading">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <p className="eyebrow">THE WORK YOU STARTED</p>
-                    <h2 id="my-projects-title">My projects</h2>
+                    <span className="text-xs font-bold tracking-wider uppercase text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                        Client Workspace
+                    </span>
+                    <h2 id="my-projects-title" className="text-2xl font-bold font-heading text-slate-900 mt-2">
+                        My Projects
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Manage your commissioned projects, review incoming bids, and track deliverables.
+                    </p>
                 </div>
 
                 <button
-                    className="secondary-button"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm self-start sm:self-auto cursor-pointer"
                     type="button"
                     disabled={loading}
                     onClick={() => setAttempt((value) => value + 1)}
                 >
+                    <RefreshCw className="w-3.5 h-3.5" />
                     Refresh
                 </button>
             </div>
 
             {loading && (
-                <p className="projects-message" role="status">
-                    Loading your projects…
-                </p>
+                <div className="flex flex-col items-center justify-center p-12 text-slate-400 gap-3" role="status">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                    <p className="text-sm font-medium">Loading your projects…</p>
+                </div>
             )}
 
             {error && (
-                <div className="projects-message">
-                    <p className="projects-error" role="alert">
-                        {error}
-                    </p>
-
-                    <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={() => setAttempt((value) => value + 1)}
-                    >
-                        Try again
-                    </button>
+                <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 my-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium" role="alert">{error}</p>
+                        <button
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                            type="button"
+                            onClick={() => setAttempt((value) => value + 1)}
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Try again
+                        </button>
+                    </div>
                 </div>
             )}
 
             {data && data.projects.length === 0 && (
-                <div className="projects-message">
-                    <h3>No projects on this page</h3>
-                    <p>Projects you create will appear here.</p>
-
-                    {page > 0 && (
-                        <button
-                            className="secondary-button"
-                            type="button"
-                            onClick={() => setPage(0)}
-                        >
-                            Back to first page
-                        </button>
-                    )}
+                <div className="text-center p-12 rounded-3xl bg-white border border-slate-200 shadow-sm max-w-md mx-auto my-6">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                        <Briefcase className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-800 mb-1">No projects posted yet</h3>
+                    <p className="text-xs text-slate-500 mb-4">
+                        Commission your first freelance project to start receiving proposals.
+                    </p>
                 </div>
             )}
 
             {data && data.projects.length > 0 && (
-                <ul className="project-list">
+                <ul className="space-y-4">
                     {data.projects.map((project) => (
-                        <li className="project-row" key={project.id}>
-                            <div className="project-summary">
-                <span className="project-status">
-                  {project.status.replaceAll('_', ' ')}
-                </span>
+                        <li
+                            key={project.id}
+                            className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col md:flex-row md:items-start justify-between gap-6"
+                        >
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                                        project.status === 'OPEN'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                            : project.status === 'IN_PROGRESS'
+                                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                            : project.status === 'COMPLETED'
+                                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    }`}>
+                                        {project.status.replaceAll('_', ' ')}
+                                    </span>
+                                </div>
 
-                                <h3>{project.title}</h3>
-                                <p>{project.description}</p>
+                                <h3 className="text-lg font-bold text-slate-900 font-heading">
+                                    {project.title}
+                                </h3>
 
-                                <div className="proposal-action-buttons">
+                                <p className="mt-2 text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                                    {project.description}
+                                </p>
+
+                                <div className="flex flex-wrap items-center gap-2.5 mt-5">
                                     <button
-                                        className="secondary-button"
                                         type="button"
                                         onClick={() => setSelectedProject(project)}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
                                     >
-                                        View proposals
+                                        <span>View proposals</span>
+                                        <ArrowUpRight className="w-3.5 h-3.5" />
                                     </button>
 
                                     {project.status === 'OPEN' && (
                                         <button
-                                            className="secondary-button"
                                             type="button"
                                             onClick={() => setEditingProject(project)}
+                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all cursor-pointer"
                                         >
-                                            Edit project
+                                            <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                                            <span>Edit project</span>
                                         </button>
                                     )}
                                 </div>
@@ -234,40 +258,39 @@ export default function MyProjects({ onChanged }: MyProjectsProps) {
                                 )}
                             </div>
 
-                            <div className="project-budget">
-                                <span>Project budget</span>
-
-                                <strong>
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100 shrink-0">
+                                <span className="text-xs text-slate-400 font-medium">Budget</span>
+                                <span className="text-lg font-extrabold font-heading text-slate-900">
                                     {new Intl.NumberFormat('en-IN', {
                                         style: 'currency',
                                         currency: project.currency,
                                         maximumFractionDigits: 2,
                                     }).format(project.budget)}
-                                </strong>
+                                </span>
                             </div>
                         </li>
                     ))}
                 </ul>
             )}
 
-            {data && data.totalPages > 0 && (
-                <nav className="pagination" aria-label="My project pages">
+            {data && data.totalPages > 1 && (
+                <nav className="flex items-center justify-between border-t border-slate-200 mt-8 pt-4" aria-label="My project pages">
                     <button
-                        className="secondary-button"
                         type="button"
+                        className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                         disabled={page === 0}
                         onClick={() => setPage((value) => value - 1)}
                     >
                         Previous
                     </button>
 
-                    <span aria-live="polite">
-            Page {data.page + 1} of {data.totalPages}
-          </span>
+                    <span className="text-xs font-medium text-slate-500" aria-live="polite">
+                        Page {data.page + 1} of {data.totalPages}
+                    </span>
 
                     <button
-                        className="secondary-button"
                         type="button"
+                        className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                         disabled={data.last}
                         onClick={() => setPage((value) => value + 1)}
                     >

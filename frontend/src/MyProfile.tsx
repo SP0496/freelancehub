@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { User, Sparkles, CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 import { ApiError, getJson, putJson } from './api'
 
 type Profile = {
@@ -16,9 +17,7 @@ export default function MyProfile() {
     const [attempt, setAttempt] = useState(0)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
-    const [fieldErrors, setFieldErrors] = useState<
-        Record<string, string>
-    >({})
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
     const saveInProgress = useRef(false)
 
@@ -43,11 +42,18 @@ export default function MyProfile() {
                 }
             } catch (failure) {
                 if (!controller.signal.aborted) {
-                    setError(
-                        failure instanceof Error
-                            ? failure.message
-                            : 'Unable to load your profile.',
-                    )
+                    if (failure instanceof ApiError && failure.status === 404) {
+                        // Brand new user: allow them to create a profile!
+                        setDisplayName('')
+                        setHeadline('')
+                        setLoaded(true)
+                    } else {
+                        setError(
+                            failure instanceof Error
+                                ? failure.message
+                                : 'Unable to load your profile.',
+                        )
+                    }
                 }
             } finally {
                 if (!controller.signal.aborted) {
@@ -99,11 +105,9 @@ export default function MyProfile() {
                 setError(failure.message)
 
                 const backendErrors: Record<string, string> = {}
-
                 for (const item of failure.errors) {
                     backendErrors[item.field] = item.message
                 }
-
                 setFieldErrors(backendErrors)
             } else {
                 setError(
@@ -119,60 +123,78 @@ export default function MyProfile() {
     return (
         <section
             id="my-profile"
-            className="projects-section"
+            className="max-w-2xl mx-auto py-6"
             aria-labelledby="my-profile-title"
             aria-busy={loading || saving}
         >
-            <div className="projects-heading">
-                <div>
-                    <p className="eyebrow">INTRODUCE YOURSELF</p>
-                    <h2 id="my-profile-title">My profile</h2>
-                </div>
+            <div className="mb-8">
+                <span className="text-xs font-bold tracking-wider uppercase text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                    Account Profile
+                </span>
+                <h2 id="my-profile-title" className="text-2xl font-bold font-heading text-slate-900 mt-2">
+                    My Profile
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                    Your public identity for project owners and freelancers across the marketplace.
+                </p>
             </div>
 
             {loading && (
-                <p className="projects-message" role="status">
-                    Loading your profile…
-                </p>
+                <div className="flex items-center gap-3 p-8 justify-center text-slate-500" role="status">
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                    <span className="text-sm">Loading your profile…</span>
+                </div>
             )}
 
-            {error && (
-                <div className="projects-message">
-                    <p className="projects-error" role="alert">
-                        {error}
-                    </p>
-
-                    <button
-                        className="secondary-button"
-                        type="button"
-                        disabled={loading || saving}
-                        onClick={() => {
-                            setSuccess('')
-                            setFieldErrors({})
-                            setAttempt((value) => value + 1)
-                        }}
-                    >
-                        Reload profile
-                    </button>
+            {error && !loaded && (
+                <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 mb-6">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium" role="alert">{error}</p>
+                            <button
+                                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                                type="button"
+                                disabled={loading || saving}
+                                onClick={() => {
+                                    setSuccess('')
+                                    setFieldErrors({})
+                                    setAttempt((value) => value + 1)
+                                }}
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Reload profile
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {loaded && !loading && (
                 <form
-                    className="project-detail-content"
+                    className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8"
                     onSubmit={handleSubmit}
                     onChange={() => setSuccess('')}
                 >
-                    <fieldset className="proposal-fields" disabled={saving}>
-                        <legend className="proposal-legend">
-                            Tell people your name and what you do.
-                        </legend>
+                    <fieldset disabled={saving} className="space-y-6">
+                        <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-emerald-500/20">
+                                {displayName ? displayName.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">
+                                    {displayName || 'New Profile'}
+                                </h3>
+                                <p className="text-xs text-slate-500">
+                                    {headline || 'Introduce yourself to start collaborating'}
+                                </p>
+                            </div>
+                        </div>
 
-                        <div className="form-field">
-                            <label htmlFor="profile-display-name">
-                                Display name
+                        <div>
+                            <label htmlFor="profile-display-name" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Display Name <span className="text-emerald-600">*</span>
                             </label>
-
                             <input
                                 id="profile-display-name"
                                 type="text"
@@ -182,69 +204,83 @@ export default function MyProfile() {
                                 value={displayName}
                                 onChange={(event) => setDisplayName(event.target.value)}
                                 aria-invalid={Boolean(fieldErrors.displayName)}
-                                aria-describedby={
+                                aria-describedby={fieldErrors.displayName ? 'profile-name-error' : undefined}
+                                placeholder="Your full name or freelance agency"
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 transition-all outline-none ${
                                     fieldErrors.displayName
-                                        ? 'profile-name-error'
-                                        : undefined
-                                }
+                                        ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500'
+                                        : 'border-slate-200 hover:border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10'
+                                }`}
                             />
-
                             {fieldErrors.displayName && (
-                                <p
-                                    id="profile-name-error"
-                                    className="field-error"
-                                    role="alert"
-                                >
+                                <p id="profile-name-error" className="mt-1.5 text-xs text-rose-600 flex items-center gap-1" role="alert">
+                                    <AlertCircle className="w-3.5 h-3.5" />
                                     {fieldErrors.displayName}
                                 </p>
                             )}
                         </div>
 
-                        <div className="form-field">
-                            <label htmlFor="profile-headline">
-                                Headline (optional)
+                        <div>
+                            <label htmlFor="profile-headline" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Professional Headline <span className="text-xs font-normal text-slate-400">(optional)</span>
                             </label>
-
                             <input
                                 id="profile-headline"
                                 type="text"
                                 maxLength={160}
                                 value={headline}
                                 onChange={(event) => setHeadline(event.target.value)}
-                                placeholder="For example, Java Full Stack Developer"
+                                placeholder="e.g. Senior Full-Stack Architect / React & Spring Boot"
                                 aria-invalid={Boolean(fieldErrors.headline)}
-                                aria-describedby={
+                                aria-describedby={fieldErrors.headline ? 'profile-headline-error' : undefined}
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 transition-all outline-none ${
                                     fieldErrors.headline
-                                        ? 'profile-headline-error'
-                                        : undefined
-                                }
+                                        ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500'
+                                        : 'border-slate-200 hover:border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10'
+                                }`}
                             />
-
                             {fieldErrors.headline && (
-                                <p
-                                    id="profile-headline-error"
-                                    className="field-error"
-                                    role="alert"
-                                >
+                                <p id="profile-headline-error" className="mt-1.5 text-xs text-rose-600 flex items-center gap-1" role="alert">
+                                    <AlertCircle className="w-3.5 h-3.5" />
                                     {fieldErrors.headline}
                                 </p>
                             )}
                         </div>
 
-                        <button
-                            className="account-button"
-                            type="submit"
-                            disabled={saving}
-                        >
-                            {saving ? 'Saving…' : 'Save profile'}
-                        </button>
-                    </fieldset>
+                        {error && (
+                            <p className="text-xs font-medium text-rose-600 flex items-center gap-1.5 p-3 rounded-lg bg-rose-50 border border-rose-100" role="alert">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                {error}
+                            </p>
+                        )}
 
-                    {success && (
-                        <p className="project-status" role="status">
-                            {success}
-                        </p>
-                    )}
+                        {success && (
+                            <p className="text-xs font-medium text-emerald-700 flex items-center gap-1.5 p-3 rounded-lg bg-emerald-50 border border-emerald-100" role="status">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                {success}
+                            </p>
+                        )}
+
+                        <div className="pt-2 flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-600/25 transition-all disabled:opacity-60"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Saving…</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        <span>Save profile</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </fieldset>
                 </form>
             )}
         </section>

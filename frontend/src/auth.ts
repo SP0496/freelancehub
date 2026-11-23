@@ -1,7 +1,13 @@
 import Keycloak from 'keycloak-js'
 
+const keycloakUrl =
+    import.meta.env.VITE_KEYCLOAK_URL ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+        ? `${window.location.protocol}//${window.location.hostname}:8180`
+        : 'http://localhost:8180')
+
 export const keycloak = new Keycloak({
-    url: 'http://localhost:8180',
+    url: keycloakUrl,
     realm: 'freelancehub',
     clientId: 'freelancehub-web',
 })

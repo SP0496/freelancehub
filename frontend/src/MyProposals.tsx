@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Calendar, RefreshCw, Loader2, AlertCircle, FileText } from 'lucide-react'
 import { getJson } from './api'
 import WithdrawProposalButton from './WithdrawProposalButton'
 
@@ -68,126 +69,142 @@ export default function MyProposals() {
     return (
         <section
             id="my-proposals"
-            className="projects-section"
+            className="py-4"
             aria-labelledby="my-proposals-title"
             aria-busy={loading}
         >
-            <div className="projects-heading">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <p className="eyebrow">YOUR APPLICATIONS</p>
-                    <h2 id="my-proposals-title">My proposals</h2>
+                    <span className="text-xs font-bold tracking-wider uppercase text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                        Freelancer Workspace
+                    </span>
+                    <h2 id="my-proposals-title" className="text-2xl font-bold font-heading text-slate-900 mt-2">
+                        My Proposals
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Track pitches you have submitted, acceptances, and withdrawal statuses.
+                    </p>
                 </div>
 
                 <button
-                    className="secondary-button"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm self-start sm:self-auto cursor-pointer"
                     type="button"
                     disabled={loading}
                     onClick={() => setAttempt((value) => value + 1)}
                 >
+                    <RefreshCw className="w-3.5 h-3.5" />
                     Refresh
                 </button>
             </div>
 
             {loading && (
-                <p className="projects-message" role="status">
-                    Loading your proposals…
-                </p>
+                <div className="flex flex-col items-center justify-center p-12 text-slate-400 gap-3" role="status">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                    <p className="text-sm font-medium">Loading your submissions…</p>
+                </div>
             )}
 
             {error && (
-                <div className="projects-message">
-                    <p className="projects-error" role="alert">
-                        {error}
-                    </p>
-
-                    <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={() => setAttempt((value) => value + 1)}
-                    >
-                        Try again
-                    </button>
+                <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 my-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium" role="alert">{error}</p>
+                        <button
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                            type="button"
+                            onClick={() => setAttempt((value) => value + 1)}
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Try again
+                        </button>
+                    </div>
                 </div>
             )}
 
             {data && data.proposals.length === 0 && (
-                <div className="projects-message">
-                    <h3>No proposals on this page</h3>
-                    <p>Your submitted proposals will appear here.</p>
-
-                    {page > 0 && (
-                        <button
-                            className="secondary-button"
-                            type="button"
-                            onClick={() => setPage(0)}
-                        >
-                            Back to first page
-                        </button>
-                    )}
+                <div className="text-center p-12 rounded-3xl bg-white border border-slate-200 shadow-sm max-w-md mx-auto my-6">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                        <FileText className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-800 mb-1">No proposals yet</h3>
+                    <p className="text-xs text-slate-500">
+                        Explore open projects and submit your first pitch.
+                    </p>
                 </div>
             )}
 
             {data && data.proposals.length > 0 && (
-                <ul className="project-list">
+                <ul className="space-y-4">
                     {data.proposals.map((proposal) => (
-                        <li className="project-row" key={proposal.id}>
-                            <div className="project-summary">
-                <span className="project-status">
-                  {proposal.status.replaceAll('_', ' ')}
-                </span>
+                        <li
+                            key={proposal.id}
+                            className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 sm:p-7 flex flex-col md:flex-row md:items-start justify-between gap-6"
+                        >
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                                        proposal.status === 'ACCEPTED'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                            : proposal.status === 'SUBMITTED'
+                                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                            : 'bg-slate-100 text-slate-500 border border-slate-200'
+                                    }`}>
+                                        {proposal.status.replaceAll('_', ' ')}
+                                    </span>
+                                </div>
 
-                                <h3>
-                                    Delivery in {proposal.deliveryDays}{' '}
-                                    {proposal.deliveryDays === 1 ? 'day' : 'days'}
+                                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-emerald-600" />
+                                    Delivery in {proposal.deliveryDays} {proposal.deliveryDays === 1 ? 'day' : 'days'}
                                 </h3>
 
-                                <p>{proposal.coverLetter}</p>
+                                <p className="mt-2.5 text-sm text-slate-600 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                                    {proposal.coverLetter}
+                                </p>
 
                                 {proposal.status === 'SUBMITTED' && (
                                     <WithdrawProposalButton
                                         projectId={proposal.projectId}
                                         proposalId={proposal.id}
                                         proposalVersion={proposal.version}
-                                        onWithdrawn={() =>
-                                            setAttempt((value) => value + 1)
-                                        }
+                                        onWithdrawn={() => setAttempt((value) => value + 1)}
                                     />
                                 )}
                             </div>
 
-                            <div className="project-budget">
-                                <span>Proposed amount</span>
-
-                                <strong>
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100 shrink-0">
+                                <span className="text-xs text-slate-400 font-medium">Proposed Bid</span>
+                                <span className="text-lg font-extrabold font-heading text-slate-900">
                                     {new Intl.NumberFormat('en-IN', {
-                                        minimumFractionDigits: 2,
+                                        style: 'currency',
+                                        currency: 'INR',
                                         maximumFractionDigits: 2,
                                     }).format(proposal.proposedAmount)}
-                                </strong>
+                                </span>
                             </div>
                         </li>
                     ))}
                 </ul>
             )}
 
-            {data && data.totalPages > 0 && (
-                <nav className="pagination" aria-label="Proposal pages">
+            {data && data.totalPages > 1 && (
+                <nav className="flex items-center justify-between border-t border-slate-200 mt-8 pt-4" aria-label="Proposal pages">
                     <button
-                        className="secondary-button"
                         type="button"
+                        className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                         disabled={page === 0}
                         onClick={() => setPage((value) => value - 1)}
                     >
                         Previous
                     </button>
 
-                    <span aria-live="polite">
-            Page {data.page + 1} of {data.totalPages}
-          </span>
+                    <span className="text-xs font-medium text-slate-500" aria-live="polite">
+                        Page {data.page + 1} of {data.totalPages}
+                    </span>
 
                     <button
-                        className="secondary-button"
                         type="button"
+                        className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                         disabled={data.last}
                         onClick={() => setPage((value) => value + 1)}
                     >

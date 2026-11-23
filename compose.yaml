@@ -27,7 +27,7 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
-      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8180}
     ports:
       - "127.0.0.1:8180:8080"
     volumes:
