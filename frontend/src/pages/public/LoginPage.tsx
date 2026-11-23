@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  KeyRound,
 } from 'lucide-react'
 
 export const LoginPage: React.FC = () => {
@@ -53,11 +52,6 @@ export const LoginPage: React.FC = () => {
     }
   }
 
-  const fillQuickAccount = (user: string, pass: string) => {
-    setUsernameInput(user)
-    setPasswordInput(pass)
-    setErrorMsg(null)
-  }
 
   return (
     <div className="max-w-md mx-auto px-4 py-12 sm:py-20">
@@ -152,30 +146,6 @@ export const LoginPage: React.FC = () => {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Login Helper */}
-          <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-[11px] text-slate-600">
-            <span className="font-semibold text-slate-800 flex items-center gap-1 mb-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-[#2563EB]" />
-              <span>Available Accounts:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickAccount('satish', 'Satish123!')}
-                className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-700 font-mono text-[10px] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-              >
-                satish (Satish123!)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickAccount('ravi', 'Ravi123!')}
-                className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-700 font-mono text-[10px] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-              >
-                ravi (Ravi123!)
               </button>
             </div>
           </div>
