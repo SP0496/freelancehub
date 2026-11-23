@@ -189,8 +189,12 @@ export const authService = {
     }
 
     if (!createResp.ok && createResp.status !== 201) {
-      const errText = await createResp.text().catch(() => '')
-      throw new Error(`Failed to create account: ${errText || 'User creation error'}`)
+      const errJson = await createResp.json().catch(() => null)
+      const errText =
+        errJson?.errorMessage ||
+        errJson?.error_description ||
+        (await createResp.text().catch(() => ''))
+      throw new Error(errText || 'Failed to create account. Please check your details.')
     }
 
     // 3. Immediately log in the newly registered user
