@@ -25,28 +25,57 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     stored?.claims.sub || String(keycloak.tokenParsed?.sub ?? '')
   )
 
+  const [avatarUrl, setAvatarUrlState] = useState<string | null>(() => {
+    const activeUser = stored?.claims.preferred_username || keycloak.tokenParsed?.preferred_username
+    return activeUser ? localStorage.getItem(`fh_user_avatar_${activeUser}`) : null
+  })
+
+  function setAvatarUrl(url: string | null) {
+    if (username && username !== 'User') {
+      const key = `fh_user_avatar_${username}`
+      if (url) {
+        try {
+          localStorage.setItem(key, url)
+        } catch {
+          // Fallback if quota exceeded
+        }
+        setAvatarUrlState(url)
+      } else {
+        localStorage.removeItem(key)
+        setAvatarUrlState(null)
+      }
+    } else {
+      setAvatarUrlState(url)
+    }
+  }
+
   function setPortal(newPortal: PortalType) {
     setPortalState(newPortal)
     localStorage.setItem('fh_active_portal', newPortal)
   }
 
-  // Sync portal preference if changed in other tabs
+  // Sync portal preference and avatar if changed in other tabs
   useEffect(() => {
     function handleStorage(e: StorageEvent) {
       if (e.key === 'fh_active_portal' && (e.newValue === 'client' || e.newValue === 'freelancer')) {
         setPortalState(e.newValue)
       }
+      if (username && e.key === `fh_user_avatar_${username}`) {
+        setAvatarUrlState(e.newValue)
+      }
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+  }, [username])
 
   async function loginWithCredentials(user: string, pass: string) {
     const session = await authService.login(user, pass)
     setIsAuthenticated(true)
-    setUsername(session.claims.preferred_username || user)
+    const activeName = session.claims.preferred_username || user
+    setUsername(activeName)
     setEmail(session.claims.email || '')
     setSub(session.claims.sub || '')
+    setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
   }
 
   async function registerWithCredentials(input: {
@@ -58,9 +87,11 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }) {
     const session = await authService.register(input)
     setIsAuthenticated(true)
-    setUsername(session.claims.preferred_username || input.username)
+    const activeName = session.claims.preferred_username || input.username
+    setUsername(activeName)
     setEmail(session.claims.email || input.email)
     setSub(session.claims.sub || '')
+    setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
   }
 
   async function logout() {
@@ -69,6 +100,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setUsername('User')
     setEmail('')
     setSub('')
+    setAvatarUrlState(null)
     window.location.href = '/'
   }
 
@@ -90,6 +122,8 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         username,
         email,
         sub,
+        avatarUrl,
+        setAvatarUrl,
         loginWithCredentials,
         registerWithCredentials,
         login,

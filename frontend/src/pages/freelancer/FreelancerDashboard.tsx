@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 
 export const FreelancerDashboard: React.FC = () => {
-  const { username } = usePortal()
+  const { username, avatarUrl } = usePortal()
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [openProjects, setOpenProjects] = useState<Project[]>([])
   const [totalOpenCount, setTotalOpenCount] = useState<number>(0)
@@ -68,17 +68,33 @@ export const FreelancerDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 text-[#2563EB] border border-blue-200 mb-2">
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Freelancer Workspace</span>
+        <div className="flex items-center gap-4">
+          <Link to="/freelancer/profile" title="Profile Settings" className="shrink-0 relative group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={username}
+                className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 ring-2 ring-transparent group-hover:ring-[#2563EB]/30 transition-all shadow-xs"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-700 font-bold text-lg font-heading group-hover:bg-blue-50 group-hover:text-[#2563EB] transition-colors">
+                {username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+          </Link>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 text-[#2563EB] border border-blue-200 mb-2">
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Freelancer Workspace</span>
+            </div>
+            <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">
+              Welcome back, {username}
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Track your submitted proposals, active contracts, and available marketplace opportunities.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">
-            Welcome back, {username}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Track your submitted proposals, active contracts, and available marketplace opportunities.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

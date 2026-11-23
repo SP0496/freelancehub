@@ -1,8 +1,8 @@
 import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { usePortal } from '../../context/PortalContext'
 import { Button } from '../common/Button'
-import { LogIn, LogOut, ArrowRightLeft, User, Menu } from 'lucide-react'
+import { LogIn, User, Menu } from 'lucide-react'
 
 export interface NavbarProps {
   onToggleSidebar?: () => void
@@ -10,14 +10,7 @@ export interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isPortal = false }) => {
-  const { portal, setPortal, isAuthenticated, username, logout } = usePortal()
-  const navigate = useNavigate()
-
-  function handleSwitchPortal() {
-    const nextPortal = portal === 'freelancer' ? 'client' : 'freelancer'
-    setPortal(nextPortal)
-    navigate(nextPortal === 'freelancer' ? '/freelancer/dashboard' : '/client/dashboard')
-  }
+  const { portal, isAuthenticated, username, avatarUrl } = usePortal()
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
@@ -68,37 +61,31 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isPortal = fals
         {/* Right Actions */}
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <>
-              {isPortal && (
-                <button
-                  type="button"
-                  onClick={handleSwitchPortal}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-                  title={`Switch to ${portal === 'freelancer' ? 'Client' : 'Freelancer'} Portal`}
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Switch to {portal === 'freelancer' ? 'Client' : 'Freelancer'}</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-                <div className="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                  <User className="w-4 h-4 text-slate-500" />
+            <Link
+              to={portal === 'freelancer' ? '/freelancer/profile' : '/client/profile'}
+              className="flex items-center gap-2.5 py-1 px-2.5 rounded-md hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all group"
+              title="Go to Profile Settings"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={username}
+                  className="w-8 h-8 rounded-full object-cover border border-slate-300 ring-2 ring-transparent group-hover:ring-[#2563EB]/20 transition-all shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 group-hover:bg-blue-50 group-hover:text-[#2563EB] group-hover:border-blue-200 transition-colors shrink-0">
+                  <User className="w-4 h-4 text-slate-500 group-hover:text-[#2563EB]" />
                 </div>
-                <span className="hidden sm:inline-block text-xs font-medium text-slate-700 max-w-[120px] truncate">
+              )}
+              <div className="text-left hidden sm:block">
+                <span className="block text-xs font-semibold text-slate-800 max-w-[120px] truncate leading-tight">
                   {username}
                 </span>
+                <span className="block text-[10px] text-slate-400 group-hover:text-[#2563EB] transition-colors leading-tight">
+                  Profile Settings
+                </span>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void logout()}
-                leftIcon={<LogOut className="w-3.5 h-3.5" />}
-              >
-                Sign out
-              </Button>
-            </>
+            </Link>
           ) : (
             <div className="flex items-center gap-2.5">
               <Link to="/login">

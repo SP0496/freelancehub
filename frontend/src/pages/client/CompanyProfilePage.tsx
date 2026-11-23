@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { userService } from '../../services/userService'
 import { usePortal } from '../../context/PortalContext'
 import { Button } from '../../components/common/Button'
@@ -8,10 +8,14 @@ import {
   AlertCircle,
   Save,
   Lock,
+  Upload,
+  Trash2,
+  Camera,
 } from 'lucide-react'
 
 export const CompanyProfilePage: React.FC = () => {
-  const { username, email, sub } = usePortal()
+  const { username, email, sub, avatarUrl, setAvatarUrl } = usePortal()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [displayName, setDisplayName] = useState('')
   const [headline, setHeadline] = useState('')
   const [industry, setIndustry] = useState('Technology & SaaS')
@@ -19,6 +23,42 @@ export const CompanyProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select a valid image file (PNG, JPG, WebP).')
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMsg('Image size exceeds 2MB limit. Please upload a smaller image.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAvatarUrl(reader.result)
+        setSuccessMsg('Company logo / display picture updated successfully.')
+        setErrorMsg(null)
+      }
+    }
+    reader.onerror = () => {
+      setErrorMsg('Failed to read image file. Please try another image.')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setSuccessMsg('Display picture removed.')
+  }
 
   useEffect(() => {
     let mounted = true
@@ -101,6 +141,77 @@ export const CompanyProfilePage: React.FC = () => {
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {/* Company Logo / DP Upload Card */}
+      <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs">
+        <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+          Organization Logo & Display Picture (DP)
+        </h2>
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="relative group shrink-0">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName || username}
+                className="w-24 h-24 rounded-full object-cover border-2 border-slate-200 shadow-xs"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl font-heading">
+                {displayName ? displayName.charAt(0).toUpperCase() : username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 rounded-full bg-slate-900/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              aria-label="Upload company logo image"
+            >
+              <Camera className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] font-medium">Change</span>
+            </button>
+          </div>
+
+          <div className="space-y-2 text-center sm:text-left flex-1">
+            <h3 className="text-sm font-semibold text-slate-800">
+              Company Logo / Client Display Picture
+            </h3>
+            <p className="text-xs text-slate-500">
+              Upload your corporate brand logo or profile picture displayed on your project listings. Recommended: Square JPG, PNG, or WebP up to 2MB.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                leftIcon={<Upload className="w-3.5 h-3.5" />}
+              >
+                Upload Photo / Logo
+              </Button>
+              {avatarUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveAvatar}
+                  leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
+                  className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                >
+                  Remove Photo
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8 shadow-xs space-y-6">
         <div>

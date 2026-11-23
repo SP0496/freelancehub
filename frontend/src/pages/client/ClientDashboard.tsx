@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 export const ClientDashboard: React.FC = () => {
-  const { username } = usePortal()
+  const { username, avatarUrl } = usePortal()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,17 +61,33 @@ export const ClientDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 mb-2">
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Client Workspace</span>
+        <div className="flex items-center gap-4">
+          <Link to="/client/profile" title="Company Profile Settings" className="shrink-0 relative group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={username}
+                className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 ring-2 ring-transparent group-hover:ring-[#2563EB]/30 transition-all shadow-xs"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-700 font-bold text-lg font-heading group-hover:bg-blue-50 group-hover:text-[#2563EB] transition-colors">
+                {username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+          </Link>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 mb-2">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Client Workspace</span>
+            </div>
+            <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">
+              Client Control Center, {username}
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Manage your project scopes, evaluate contractor proposals, and track milestone execution.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">
-            Client Control Center, {username}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Manage your project scopes, evaluate contractor proposals, and track milestone execution.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

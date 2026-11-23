@@ -39,7 +39,7 @@ const navItems = [
 ]
 
 export const FreelancerSidebar: React.FC<FreelancerSidebarProps> = ({ isOpen, onClose }) => {
-  const { logout } = usePortal()
+  const { logout, username, avatarUrl } = usePortal()
 
   return (
     <>
@@ -92,7 +92,31 @@ export const FreelancerSidebar: React.FC<FreelancerSidebarProps> = ({ isOpen, on
           })}
         </div>
 
-        <div className="p-3 border-t border-slate-200">
+        <div className="p-3 border-t border-slate-200 space-y-2">
+          <NavLink
+            to="/freelancer/profile"
+            onClick={onClose}
+            className="flex items-center gap-2.5 p-1.5 rounded-md hover:bg-slate-50 transition-colors group"
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={username}
+                className="w-8 h-8 rounded-full object-cover border border-slate-300 shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 shrink-0 group-hover:bg-blue-50 group-hover:text-[#2563EB] transition-colors">
+                <UserCheck className="w-4 h-4 text-slate-500 group-hover:text-[#2563EB]" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold text-slate-900 truncate">{username}</span>
+              <span className="block text-[10px] text-slate-400 group-hover:text-[#2563EB] transition-colors">
+                Profile Settings →
+              </span>
+            </div>
+          </NavLink>
+
           <button
             type="button"
             onClick={() => void logout()}

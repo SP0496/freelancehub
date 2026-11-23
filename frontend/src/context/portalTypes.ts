@@ -10,6 +10,8 @@ export interface PortalContextValue {
   username: string
   email: string
   sub: string
+  avatarUrl: string | null
+  setAvatarUrl: (url: string | null) => void
   loginWithCredentials: (username: string, password: string) => Promise<void>
   registerWithCredentials: (input: {
     username: string
