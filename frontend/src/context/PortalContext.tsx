@@ -1,6 +1,6 @@
 /* oxlint-disable react/only-export-components */
 import React, { useState, useEffect } from 'react'
-import { authService } from '../services/authService'
+import { authService, type RegisterInput } from '../services/authService'
 import { keycloak } from '../auth'
 import { PortalContext, type PortalType } from './portalTypes'
 
@@ -68,8 +68,26 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => window.removeEventListener('storage', handleStorage)
   }, [username])
 
-  async function loginWithCredentials(user: string, pass: string) {
-    const session = await authService.login(user, pass)
+  async function loginWithCredentials(userOrEmail: string, pass: string) {
+    const session = await authService.login(userOrEmail, pass)
+    setIsAuthenticated(true)
+    const activeName = session.claims.preferred_username || userOrEmail
+    setUsername(activeName)
+    setEmail(session.claims.email || '')
+    setSub(session.claims.sub || '')
+    setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
+  }
+
+  async function sendPasswordResetEmail(userOrEmail: string) {
+    return authService.sendPasswordResetEmail(userOrEmail)
+  }
+
+  async function initiateRegistrationWithOtp(input: RegisterInput) {
+    return authService.initiateRegistrationWithOtp(input)
+  }
+
+  async function verifyRegistrationOtp(user: string, pass: string, otp: string) {
+    const session = await authService.verifyRegistrationOtp(user, pass, otp)
     setIsAuthenticated(true)
     const activeName = session.claims.preferred_username || user
     setUsername(activeName)
@@ -78,20 +96,20 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
   }
 
-  async function registerWithCredentials(input: {
-    username: string
-    email: string
-    firstName: string
-    lastName: string
-    password: string
-  }) {
+  async function resendRegistrationOtp(user: string) {
+    return authService.resendRegistrationOtp(user)
+  }
+
+  async function registerWithCredentials(input: RegisterInput) {
     const session = await authService.register(input)
-    setIsAuthenticated(true)
-    const activeName = session.claims.preferred_username || input.username
-    setUsername(activeName)
-    setEmail(session.claims.email || input.email)
-    setSub(session.claims.sub || '')
-    setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
+    if (session.tokens.accessToken) {
+      setIsAuthenticated(true)
+      const activeName = session.claims.preferred_username || input.username
+      setUsername(activeName)
+      setEmail(session.claims.email || input.email)
+      setSub(session.claims.sub || '')
+      setAvatarUrlState(localStorage.getItem(`fh_user_avatar_${activeName}`))
+    }
   }
 
   async function logout() {
@@ -125,6 +143,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         avatarUrl,
         setAvatarUrl,
         loginWithCredentials,
+        sendPasswordResetEmail,
+        initiateRegistrationWithOtp,
+        verifyRegistrationOtp,
+        resendRegistrationOtp,
         registerWithCredentials,
         login,
         register,

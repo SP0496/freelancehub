@@ -20,6 +20,9 @@ public class SecurityConfig {
                 .securityContextRepository(
                         NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(auth -> auth
+                        .pathMatchers("/api/v1/auth/**")
+                        .permitAll()
+
                         .pathMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/users/me",

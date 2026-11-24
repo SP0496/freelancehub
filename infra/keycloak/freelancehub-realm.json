@@ -8,6 +8,7 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "verifyEmail": false,
+  "emailTheme": "freelancehub",
   "clients": [
     {
       "clientId": "freelancehub-web",

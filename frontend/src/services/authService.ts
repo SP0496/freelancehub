@@ -16,7 +16,32 @@ export interface UserClaims {
   family_name?: string
 }
 
+export interface InitiateRegisterResult {
+  email: string
+  maskedEmail: string
+  username: string
+  expiresIn?: number
+  cooldown?: number
+  message?: string
+}
+
+export interface RegisterInput {
+  firstName: string
+  lastName: string
+  username: string
+  email: string
+  password: string
+  role?: string
+}
+
+export interface CompleteRegistrationInput extends RegisterInput {
+  otp: string
+}
+
 const STORAGE_KEY = 'fh_auth_session'
+
+// In-memory pending registration cache (kept in client memory during the registration turn only)
+let pendingRegistration: RegisterInput | null = null
 
 export const getKeycloakBaseUrl = (): string => {
   if (typeof window !== 'undefined' && (window as unknown as { __KEYCLOAK_URL__?: string }).__KEYCLOAK_URL__) {
@@ -28,6 +53,13 @@ export const getKeycloakBaseUrl = (): string => {
       ? `${window.location.protocol}//${window.location.hostname}:8180`
       : 'http://localhost:8180')
   )
+}
+
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined' && (window as unknown as { __API_URL__?: string }).__API_URL__) {
+    return (window as unknown as { __API_URL__: string }).__API_URL__
+  }
+  return import.meta.env.VITE_API_URL || ''
 }
 
 export function parseJwt(token: string): Record<string, unknown> | null {
@@ -45,6 +77,15 @@ export function parseJwt(token: string): Record<string, unknown> | null {
   } catch {
     return null
   }
+}
+
+export function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email
+  const [localPart, domain] = email.split('@')
+  if (localPart.length <= 2) {
+    return `${localPart[0]}***@${domain}`
+  }
+  return `${localPart.slice(0, 2)}***${localPart.slice(-1)}@${domain}`
 }
 
 function syncToKeycloakInstance(tokens: AuthTokens, claims: UserClaims) {
@@ -71,7 +112,6 @@ export const authService = {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return null
       const session = JSON.parse(raw) as { tokens: AuthTokens; claims: UserClaims }
-      // Check if session has not completely expired (within refresh window)
       if (Date.now() < session.tokens.expiresAt) {
         syncToKeycloakInstance(session.tokens, session.claims)
         return session
@@ -82,14 +122,18 @@ export const authService = {
     }
   },
 
-  async login(username: string, password: string): Promise<{ tokens: AuthTokens; claims: UserClaims }> {
+  /**
+   * Direct Login: accepts Username or Email and Password.
+   * Authenticates directly with Keycloak using standard OAuth2 Resource Owner Password Credentials Grant.
+   */
+  async login(usernameOrEmail: string, password: string): Promise<{ tokens: AuthTokens; claims: UserClaims }> {
     const baseUrl = getKeycloakBaseUrl()
     const tokenUrl = `${baseUrl}/realms/freelancehub/protocol/openid-connect/token`
 
     const body = new URLSearchParams({
       client_id: 'freelancehub-web',
       grant_type: 'password',
-      username: username.trim(),
+      username: usernameOrEmail.trim(),
       password,
       scope: 'openid profile email',
     })
@@ -105,9 +149,9 @@ export const authService = {
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}))
       if (errData.error === 'invalid_grant') {
-        throw new Error('Invalid username or password. Please check your credentials.')
+        throw new Error('Invalid username or password. Please verify your credentials.')
       }
-      throw new Error(errData.error_description || 'Authentication failed. Please try again.')
+      throw new Error(errData.error_description || errData.error || 'Authentication failed. Please try again.')
     }
 
     const data = await response.json()
@@ -127,78 +171,238 @@ export const authService = {
     return session
   },
 
-  async register(input: {
-    username: string
-    email: string
-    firstName: string
-    lastName: string
-    password: string
-  }): Promise<{ tokens: AuthTokens; claims: UserClaims }> {
-    const baseUrl = getKeycloakBaseUrl()
+  /**
+   * Forgot Password: sends password reset email via Keycloak SMTP through API Gateway
+   */
+  async sendPasswordResetEmail(usernameOrEmail: string): Promise<{ email: string; maskedEmail: string }> {
+    const apiBase = getApiBaseUrl()
+    const url = `${apiBase}/api/v1/auth/forgot-password`
 
-    // 1. Obtain admin token to provision user in freelancehub realm
-    const adminTokenUrl = `${baseUrl}/realms/master/protocol/openid-connect/token`
-    const adminBody = new URLSearchParams({
-      client_id: 'admin-cli',
-      grant_type: 'password',
-      username: 'admin',
-      password: import.meta.env.VITE_KEYCLOAK_ADMIN_PASSWORD || 'LocalAdminPassword123',
-    })
-
-    const adminTokenResp = await fetch(adminTokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: adminBody.toString(),
-    })
-
-    if (!adminTokenResp.ok) {
-      throw new Error('Could not reach identity authority to provision user.')
-    }
-
-    const adminTokenData = await adminTokenResp.json()
-    const adminToken = adminTokenData.access_token
-
-    // 2. Create the user
-    const createUserUrl = `${baseUrl}/admin/realms/freelancehub/users`
-    const userPayload = {
-      username: input.username.trim(),
-      email: input.email.trim(),
-      firstName: input.firstName.trim(),
-      lastName: input.lastName.trim(),
-      enabled: true,
-      credentials: [
-        {
-          type: 'password',
-          value: input.password,
-          temporary: false,
-        },
-      ],
-    }
-
-    const createResp = await fetch(createUserUrl, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userPayload),
+      body: JSON.stringify({ identifier: usernameOrEmail.trim() }),
     })
 
-    if (createResp.status === 409) {
-      throw new Error('An account with this username or email already exists.')
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => null)
+      const errorMsg =
+        errJson?.detail ||
+        errJson?.message ||
+        'Failed to dispatch password reset email. Please try again.'
+      throw new Error(errorMsg)
     }
 
-    if (!createResp.ok && createResp.status !== 201) {
-      const errJson = await createResp.json().catch(() => null)
-      const errText =
-        errJson?.errorMessage ||
-        errJson?.error_description ||
-        (await createResp.text().catch(() => ''))
-      throw new Error(errText || 'Failed to create account. Please check your details.')
+    const data = await response.json()
+    return {
+      email: usernameOrEmail.trim(),
+      maskedEmail: data.maskedEmail || maskEmail(usernameOrEmail.trim()),
+    }
+  },
+
+  /**
+   * New User Registration: Step 1 - Request 6-digit OTP from Keycloak Registration OTP SPI via backend
+   */
+  async initiateRegistrationWithOtp(input: RegisterInput): Promise<InitiateRegisterResult> {
+    pendingRegistration = { ...input }
+
+    const apiBase = getApiBaseUrl()
+    const url = `${apiBase}/api/v1/auth/registration-otp/send`
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: input.email.trim(),
+        username: input.username.trim(),
+      }),
+    })
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => null)
+      const errorMsg =
+        errJson?.detail ||
+        errJson?.message ||
+        (response.status === 409
+          ? 'An account with this username or email already exists.'
+          : 'Failed to dispatch verification code. Please try again.')
+      throw new Error(errorMsg)
     }
 
-    // 3. Immediately log in the newly registered user
-    return this.login(input.username, input.password)
+    const data = await response.json()
+    return {
+      email: input.email.trim(),
+      maskedEmail: data.maskedEmail || maskEmail(input.email.trim()),
+      username: input.username.trim(),
+      expiresIn: data.expiresIn || 300,
+      cooldown: data.cooldown || 60,
+      message: data.message,
+    }
+  },
+
+  /**
+   * Resend Registration OTP
+   */
+  async resendRegistrationOtp(emailOrUsername?: string): Promise<InitiateRegisterResult> {
+    const email = pendingRegistration?.email || (emailOrUsername?.includes('@') ? emailOrUsername : '')
+    const username = pendingRegistration?.username || (!emailOrUsername?.includes('@') ? emailOrUsername : '')
+
+    if (!email) {
+      throw new Error('Email address required for resending verification code.')
+    }
+
+    const apiBase = getApiBaseUrl()
+    const url = `${apiBase}/api/v1/auth/registration-otp/send`
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.trim(),
+        username: username?.trim() || undefined,
+      }),
+    })
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => null)
+      const errorMsg =
+        errJson?.detail ||
+        errJson?.message ||
+        'Failed to resend verification code. Please try again.'
+      throw new Error(errorMsg)
+    }
+
+    const data = await response.json()
+    return {
+      email: email.trim(),
+      maskedEmail: data.maskedEmail || maskEmail(email.trim()),
+      username: username || '',
+      expiresIn: data.expiresIn || 300,
+      cooldown: data.cooldown || 60,
+      message: data.message,
+    }
+  },
+
+  /**
+   * Verify Registration OTP and Complete Registration:
+   * 1. Verifies 6-digit OTP via Keycloak SPI and gets single-use verificationTicket.
+   * 2. Calls backend /api/v1/auth/register to create verified user in Keycloak, assign role, and sync profile.
+   * 3. Logs in to obtain OAuth2 JWT tokens.
+   */
+  async verifyRegistrationOtp(
+    paramOrUser: CompleteRegistrationInput | string,
+    maybePassword?: string,
+    maybeOtp?: string,
+  ): Promise<{ tokens: AuthTokens; claims: UserClaims }> {
+    let registrationData: CompleteRegistrationInput
+
+    if (typeof paramOrUser === 'object') {
+      registrationData = paramOrUser
+    } else {
+      if (!pendingRegistration) {
+        throw new Error('Registration session expired. Please re-enter your registration details.')
+      }
+      registrationData = {
+        ...pendingRegistration,
+        username: paramOrUser || pendingRegistration.username,
+        password: maybePassword || pendingRegistration.password,
+        otp: maybeOtp || '',
+      }
+    }
+
+    if (!registrationData.otp || registrationData.otp.trim().length !== 6) {
+      throw new Error('Please enter the full 6-digit verification code.')
+    }
+
+    const apiBase = getApiBaseUrl()
+
+    // Step 1: Verify OTP and acquire single-use verification ticket
+    const verifyUrl = `${apiBase}/api/v1/auth/registration-otp/verify`
+    const verifyResp = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: registrationData.email.trim(),
+        otp: registrationData.otp.trim(),
+      }),
+    })
+
+    if (!verifyResp.ok) {
+      const errJson = await verifyResp.json().catch(() => null)
+      const errorMsg =
+        errJson?.detail ||
+        errJson?.message ||
+        'Invalid or expired verification code. Please check your Gmail and try again.'
+      throw new Error(errorMsg)
+    }
+
+    const verifyData = await verifyResp.json()
+    const ticket = verifyData.verificationTicket
+
+    if (!ticket) {
+      throw new Error('Failed to obtain verification ticket from identity service.')
+    }
+
+    // Step 2: Complete User Registration with verified ticket
+    const registerUrl = `${apiBase}/api/v1/auth/register`
+    const registerResp = await fetch(registerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        firstName: registrationData.firstName.trim(),
+        lastName: registrationData.lastName.trim(),
+        username: registrationData.username.trim(),
+        email: registrationData.email.trim(),
+        password: registrationData.password,
+        role: registrationData.role || 'ROLE_FREELANCER',
+        verificationTicket: ticket,
+      }),
+    })
+
+    if (!registerResp.ok) {
+      const errJson = await registerResp.json().catch(() => null)
+      const errorMsg =
+        errJson?.detail ||
+        errJson?.message ||
+        'Registration could not be completed. Please try again.'
+      throw new Error(errorMsg)
+    }
+
+    // Clear pending registration state from memory
+    pendingRegistration = null
+
+    // Step 3: Perform direct OAuth2 login with the newly created account
+    return this.login(registrationData.username, registrationData.password)
+  },
+
+  /**
+   * Direct registration fallback
+   */
+  async register(input: RegisterInput): Promise<{ tokens: AuthTokens; claims: UserClaims }> {
+    return this.initiateRegistrationWithOtp(input).then(() => {
+      return {
+        tokens: {
+          accessToken: '',
+          refreshToken: '',
+          expiresAt: 0,
+        },
+        claims: {
+          sub: '',
+          preferred_username: input.username,
+          email: input.email,
+        },
+      }
+    })
   },
 
   async logout(): Promise<void> {
