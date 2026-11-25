@@ -45,7 +45,7 @@ services:
         SERVICE_DIR: backend/user-service
     restart: always
     environment:
-      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx220m -XX:+UseSerialGC"}
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx220m -XX:+UseSerialGC
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_user
       SPRING_DATASOURCE_USERNAME: fh_user_app
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
@@ -71,7 +71,7 @@ services:
         SERVICE_DIR: backend/marketplace-service/pom.xml/marketplace-service
     restart: always
     environment:
-      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx220m -XX:+UseSerialGC"}
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx220m -XX:+UseSerialGC
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_marketplace
       SPRING_DATASOURCE_USERNAME: fh_marketplace_app
       SPRING_DATASOURCE_PASSWORD: ${MARKETPLACE_DB_PASSWORD:?Set MARKETPLACE_DB_PASSWORD}
@@ -93,7 +93,7 @@ services:
         SERVICE_DIR: backend/api-gateway/api-gateway
     restart: always
     environment:
-      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx180m -XX:+UseSerialGC"}
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx180m -XX:+UseSerialGC
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${KEYCLOAK_HOSTNAME}/realms/freelancehub
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
       SPRING_APPLICATION_JSON: >-
