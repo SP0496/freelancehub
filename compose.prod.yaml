@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.4
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--innodb-buffer-pool-size=64M", "--max-connections=30"]
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
@@ -23,6 +24,7 @@ services:
     command: ["start-dev", "--import-realm"]
     restart: always
     environment:
+      JAVA_OPTS_KC_HEAP: "-Xms128m -Xmx384m"
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:?Set KEYCLOAK_HOSTNAME e.g. http://<EC2_PUBLIC_IP>:8180}
@@ -43,6 +45,7 @@ services:
         SERVICE_DIR: backend/user-service
     restart: always
     environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx220m -XX:+UseSerialGC"}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_user
       SPRING_DATASOURCE_USERNAME: fh_user_app
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD}
@@ -68,6 +71,7 @@ services:
         SERVICE_DIR: backend/marketplace-service/pom.xml/marketplace-service
     restart: always
     environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx220m -XX:+UseSerialGC"}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fh_marketplace
       SPRING_DATASOURCE_USERNAME: fh_marketplace_app
       SPRING_DATASOURCE_PASSWORD: ${MARKETPLACE_DB_PASSWORD:?Set MARKETPLACE_DB_PASSWORD}
@@ -89,6 +93,7 @@ services:
         SERVICE_DIR: backend/api-gateway/api-gateway
     restart: always
     environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-"-Xms64m -Xmx180m -XX:+UseSerialGC"}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${KEYCLOAK_HOSTNAME}/realms/freelancehub
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
       SPRING_APPLICATION_JSON: >-
