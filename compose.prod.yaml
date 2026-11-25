@@ -54,7 +54,7 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://identity:8080/realms/freelancehub/protocol/openid-connect/certs
       KEYCLOAK_SERVER_URL: http://identity:8080
       KEYCLOAK_REALM: freelancehub
-      KEYCLOAK_ADMIN_USERNAME: admin
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-superadmin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
     depends_on:
       mysql:
